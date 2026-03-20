@@ -123,15 +123,17 @@ audio {
   width: 100%;
   height: 40px;
   margin-bottom: 10px;
-  background: #222;
+  background: #2a2a2a;
   border-radius: 8px;
 }
-audio::-webkit-media-controls-panel { background-color: #222; }
+audio::-webkit-media-controls-panel { background-color: #2a2a2a; }
+audio::-webkit-media-controls-enclosure { background-color: #2a2a2a; border-radius: 8px; }
 audio::-webkit-media-controls-play-button { filter: invert(1); }
 audio::-webkit-media-controls-mute-button { filter: invert(1); }
-audio::-webkit-media-controls-timeline { filter: invert(1) brightness(2); }
+audio::-webkit-media-controls-timeline { filter: invert(1) brightness(1.5); }
 audio::-webkit-media-controls-current-time-display { color: #fff; }
 audio::-webkit-media-controls-time-remaining-display { color: #fff; }
+audio::-webkit-media-controls-overflow-button { filter: invert(1); }
 
 .nav-controls { display: flex; gap: 8px; }
 .nav-btn {
@@ -341,7 +343,7 @@ footer {
     <button class="nav-btn" onclick="prevTrack()">⏮</button>
     <button class="nav-btn primary" onclick="startPlaylist()">SPELA VALDA</button>
     <button class="nav-btn" onclick="nextTrack()">⏭</button>
-    <button class="repeat-btn" id="repeatBtn" onclick="cycleRepeat()" title="Repeat">🔁</button>
+    <button class="repeat-btn" id="repeatBtn" onclick="cycleRepeat()" title="Repeat av">🔁 Av</button>
   </div>
 </div>
 
@@ -372,9 +374,18 @@ function cycleRepeat() {
     repeatMode = (repeatMode + 1) % 3;
     const btn = document.getElementById('repeatBtn');
     btn.classList.remove('active-one', 'active-all');
-    if (repeatMode === 1) { btn.classList.add('active-one'); btn.textContent = '🔂'; btn.title = 'Upprepa spår'; }
-    else if (repeatMode === 2) { btn.classList.add('active-all'); btn.textContent = '🔁'; btn.title = 'Upprepa lista'; }
-    else { btn.textContent = '🔁'; btn.title = 'Repeat av'; }
+    if (repeatMode === 1) {
+        btn.classList.add('active-one');
+        btn.innerHTML = '🔂 Spår';
+        btn.title = 'Upprepa spår';
+    } else if (repeatMode === 2) {
+        btn.classList.add('active-all');
+        btn.innerHTML = '🔁 Lista';
+        btn.title = 'Upprepa lista';
+    } else {
+        btn.innerHTML = '🔁 Av';
+        btn.title = 'Repeat av';
+    }
 }
 
 function initAudio() {
