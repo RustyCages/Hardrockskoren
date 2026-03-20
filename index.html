@@ -274,6 +274,22 @@ input[type="checkbox"] {
   flex-shrink: 0;
 }
 
+/* REPEAT BUTTON */
+.repeat-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 12px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+  width: 46px;
+}
+.repeat-btn.active-one { color: #fff; border-color: var(--red); background: var(--red-dark); }
+.repeat-btn.active-all { color: #fff; border-color: #e6922e; background: #8a4d00; }
+
 /* FOOTER */
 footer {
   text-align: center;
@@ -297,10 +313,23 @@ footer {
 <button class="help-btn-toggle" onclick="toggleHelp()">📱 Visa instruktioner för iPhone/Android</button>
 
 <div id="help-section">
-  <h3>Spara som App</h3>
-  <p>iPhone: Tryck på Dela-knappen → "Lägg till på hemskärmen".<br>
-  Android: Tryck på tre punkterna → "Lägg till på startskärmen".</p>
-  <button class="help-btn-toggle" onclick="toggleHelp()" style="margin-top:10px;">Stäng</button>
+  <h3>🎸 Kom igång</h3>
+  <p>Tryck på <strong>STARTA SPELAREN</strong> första gången du öppnar appen — det krävs för att ljud ska fungera på iPhone och Android.</p>
+
+  <h3 style="margin-top:14px;">🎵 Välj stämmor &amp; spela lista</h3>
+  <p>Tryck på en låt för att expandera den. Bocka i en eller flera stämmor och tryck sedan <strong>SPELA VALDA</strong> för att spela dem i följd. Vill du bara testa en stämma direkt — tryck på knappen med stämmans namn så spelas den omedelbart.</p>
+
+  <h3 style="margin-top:14px;">🔁 Repeat</h3>
+  <p>Tryck på 🔁-knappen bredvid navigeringen för att växla repeat-läge:<br>
+  <strong>Grå</strong> = av — listan spelas en gång.<br>
+  <strong>🔂 Röd</strong> = upprepa spår — samma spår loopar tills du byter.<br>
+  <strong>🔁 Orange</strong> = upprepa lista — hela listan börjar om från början.</p>
+
+  <h3 style="margin-top:14px;">📱 Spara som app på mobilen</h3>
+  <p><strong>iPhone:</strong> Tryck på Dela-knappen (fyrkant med pil) i Safari → "Lägg till på hemskärmen".<br>
+  <strong>Android:</strong> Tryck på tre punkterna i Chrome → "Lägg till på startskärmen".</p>
+
+  <button class="help-btn-toggle" onclick="toggleHelp()" style="margin-top:14px;">Stäng</button>
 </div>
 
 <button id="ios-init" onclick="initAudio()">STARTA SPELAREN</button>
@@ -312,6 +341,7 @@ footer {
     <button class="nav-btn" onclick="prevTrack()">⏮</button>
     <button class="nav-btn primary" onclick="startPlaylist()">SPELA VALDA</button>
     <button class="nav-btn" onclick="nextTrack()">⏭</button>
+    <button class="repeat-btn" id="repeatBtn" onclick="cycleRepeat()" title="Repeat">🔁</button>
   </div>
 </div>
 
@@ -335,6 +365,17 @@ const trackTitle = document.getElementById('trackTitle');
 
 let playQueue = [];
 let currentIndex = 0;
+// repeat: 0 = off, 1 = repeat one, 2 = repeat all
+let repeatMode = 0;
+
+function cycleRepeat() {
+    repeatMode = (repeatMode + 1) % 3;
+    const btn = document.getElementById('repeatBtn');
+    btn.classList.remove('active-one', 'active-all');
+    if (repeatMode === 1) { btn.classList.add('active-one'); btn.textContent = '🔂'; btn.title = 'Upprepa spår'; }
+    else if (repeatMode === 2) { btn.classList.add('active-all'); btn.textContent = '🔁'; btn.title = 'Upprepa lista'; }
+    else { btn.textContent = '🔁'; btn.title = 'Repeat av'; }
+}
 
 function initAudio() {
     audioPlayer.src = "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
@@ -374,10 +415,16 @@ async function playTrack(idx) {
 }
 
 audioPlayer.addEventListener('ended', function() {
-    if (currentIndex < playQueue.length - 1) {
+    if (repeatMode === 1) {
+        // Repeat one — spela samma spår igen
+        playTrack(currentIndex);
+    } else if (currentIndex < playQueue.length - 1) {
         nextTrack();
+    } else if (repeatMode === 2) {
+        // Repeat all — börja om från början
+        playTrack(0);
     } else {
-        trackTitle.innerText = "Spellistan klar!";
+        trackTitle.innerText = 'Spellistan klar!';
     }
 });
 
