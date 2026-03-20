@@ -305,6 +305,8 @@ footer {
   font-size: 11px;
   line-height: 1.8;
 }
+
+
 </style>
 </head>
 <body oncontextmenu="return false;">
@@ -446,17 +448,13 @@ function nextTrack() { if (currentIndex < playQueue.length - 1) playTrack(curren
 function prevTrack() { if (currentIndex > 0) playTrack(currentIndex - 1); }
 
 function startPlaylist() {
-    playQueue = [];
-    songs.forEach(s => {
-        s.tracks.forEach((t, i) => {
-            const cb = document.getElementById(`cb-${s.id}-${i}`);
-            if (cb && cb.checked) {
-                playQueue.push({ url: t.url, name: `${s.title} (${t.label})` });
-            }
-        });
+    if (checkOrder.length === 0) { alert('Bocka i minst en stämma först!'); return; }
+    playQueue = checkOrder.map(({ songId, trackIdx }) => {
+        const s = songs.find(s => s.id === songId);
+        const t = s.tracks[trackIdx];
+        return { url: t.url, name: `${s.title} (${t.label})` };
     });
-    if (playQueue.length > 0) playTrack(0);
-    else alert("Välj minst en stämma först!");
+    playTrack(0);
 }
 
 // FIXAD FUNKTION: Hittar nu rätt låt via ID istället för index
@@ -474,20 +472,166 @@ function toggleHelp() {
     hs.style.display = hs.style.display === 'block' ? 'none' : 'block';
 }
 
+
+// ── SORTING ──────────────────────────────────────────────
+let sortMode = 'custom'; // 'az', 'za', 'custom'
+
+function sortSongs(mode) {
+    sortMode = mode;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('sort-' + mode);
+    if (btn) btn.classList.add('active');
+    if (mode === 'az') songs.sort((a, b) => a.title.localeCompare(b.title, 'sv'));
+    else if (mode === 'za') songs.sort((a, b) => b.title.localeCompare(a.title, 'sv'));
+    render();
+    initDragDrop();
+}
+
+function moveSong(id, dir) {
+    const idx = songs.findIndex(s => s.id === id);
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= songs.length) return;
+    [songs[idx], songs[newIdx]] = [songs[newIdx], songs[idx]];
+    sortMode = 'custom';
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    render();
+    initDragDrop();
+}
+
+// ── DRAG AND DROP (mouse + touch) ────────────────────────
+function initDragDrop() {
+    const list = document.getElementById('songList');
+    let dragged = null;
+    let touchClone = null;
+    let touchOffX = 0, touchOffY = 0;
+
+    list.querySelectorAll('.drag-handle').forEach(handle => {
+        const card = handle.closest('.song-card');
+
+        // Mouse drag
+        handle.addEventListener('mousedown', e => {
+            dragged = card;
+            card.classList.add('dragging');
+        });
+
+        // Touch drag
+        handle.addEventListener('touchstart', e => {
+            dragged = card;
+            card.classList.add('dragging');
+            const touch = e.touches[0];
+            const rect = card.getBoundingClientRect();
+            touchOffX = touch.clientX - rect.left;
+            touchOffY = touch.clientY - rect.top;
+
+            touchClone = card.cloneNode(true);
+            touchClone.style.cssText = `position:fixed;z-index:9999;width:${rect.width}px;opacity:0.85;pointer-events:none;left:${rect.left}px;top:${rect.top}px;`;
+            document.body.appendChild(touchClone);
+            e.preventDefault();
+        }, { passive: false });
+    });
+
+    list.querySelectorAll('.song-card').forEach(card => {
+        card.addEventListener('dragover', e => {
+            e.preventDefault();
+            if (dragged && dragged !== card) {
+                card.classList.add('drag-over');
+            }
+        });
+        card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+        card.addEventListener('drop', e => {
+            e.preventDefault();
+            card.classList.remove('drag-over');
+            if (dragged && dragged !== card) dropCard(card);
+        });
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!dragged) return;
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const target = el && el.closest('.song-card');
+        list.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
+        if (target && target !== dragged) target.classList.add('drag-over');
+    });
+
+    document.addEventListener('mouseup', e => {
+        if (!dragged) return;
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const target = el && el.closest('.song-card');
+        list.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
+        if (target && target !== dragged) dropCard(target);
+        dragged.classList.remove('dragging');
+        dragged = null;
+    });
+
+    document.addEventListener('touchmove', e => {
+        if (!dragged || !touchClone) return;
+        const touch = e.touches[0];
+        touchClone.style.left = (touch.clientX - touchOffX) + 'px';
+        touchClone.style.top  = (touch.clientY - touchOffY) + 'px';
+        touchClone.style.display = 'none';
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        touchClone.style.display = '';
+        const target = el && el.closest('.song-card');
+        list.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
+        if (target && target !== dragged) target.classList.add('drag-over');
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', e => {
+        if (!dragged) return;
+        if (touchClone) { touchClone.remove(); touchClone = null; }
+        const touch = e.changedTouches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const target = el && el.closest('.song-card');
+        list.querySelectorAll('.song-card').forEach(c => c.classList.remove('drag-over'));
+        if (target && target !== dragged) dropCard(target);
+        dragged.classList.remove('dragging');
+        dragged = null;
+    });
+
+    function dropCard(target) {
+        const ids = [...list.querySelectorAll('.song-card')].map(c => c.id.replace('card-', ''));
+        const fromIdx = songs.findIndex(s => s.id === dragged.id.replace('card-', ''));
+        const toIdx   = songs.findIndex(s => s.id === target.id.replace('card-', ''));
+        songs.splice(toIdx, 0, songs.splice(fromIdx, 1)[0]);
+        sortMode = 'custom';
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+        render();
+        initDragDrop();
+    }
+}
+
+
+// ── CHECKBOX-ORDER SPELLISTA ─────────────────────────────
+let checkOrder = []; // [{songId, trackIdx}] i bockningsordning
+
+function onTrackCheck(songId, trackIdx, checked) {
+    // Ta bort om den finns
+    checkOrder = checkOrder.filter(e => !(e.songId === songId && e.trackIdx === trackIdx));
+    if (checked) checkOrder.push({ songId, trackIdx });
+    updateBadges();
+}
+
+function updateBadges() {
+    songs.forEach(s => {
+        const card = document.getElementById('card-' + s.id);
+        if (!card) return;
+        const count = checkOrder.filter(e => e.songId === s.id).length;
+        const badge = card.querySelector('.selection-badge');
+        if (badge) {
+            if (count > 0) { badge.style.display = 'inline-block'; badge.innerText = count + ' VALDA'; }
+            else { badge.style.display = 'none'; }
+        }
+        if (count > 0) card.classList.add('has-selection');
+        else card.classList.remove('has-selection');
+    });
+}
+
 function toggleSong(cardId) {
     const card = document.getElementById(cardId);
     if (card) card.classList.toggle('expanded');
 }
 
-function updateBadge(songId) {
-    const card = document.getElementById(`card-${songId}`);
-    const checked = card.querySelectorAll('input[type="checkbox"]:checked').length;
-    if (checked > 0) {
-        card.classList.add('has-selection');
-        card.querySelector('.selection-badge').innerText = `${checked} VALDA`;
-    } else {
-        card.classList.remove('has-selection');
-    }
 }
 
 let songs = [
@@ -572,18 +716,19 @@ function render() {
     songs.forEach((s) => {
         if(!s.title.toLowerCase().includes(term) && !s.artist.toLowerCase().includes(term)) return;
         html += `
-        <div class="song-card" id="card-${s.id}">
+        <div class="song-card" id="card-${s.id}" draggable="false">
             <div class="song-header" onclick="toggleSong('card-${s.id}')">
-                <div>
+                <div style="flex:1">
                     <div class="song-title">${s.title} <span class="selection-badge"></span></div>
                     <div class="song-artist">${s.artist}</div>
                 </div>
+                <span class="song-chevron">›</span>
             </div>
             <div class="song-content">`;
         s.tracks.forEach((t, tIdx) => {
             html += `
                 <div class="track-row">
-                    <input type="checkbox" id="cb-${s.id}-${tIdx}" onchange="updateBadge('${s.id}')">
+                    <input type="checkbox" id="cb-${s.id}-${tIdx}" onchange="onTrackCheck('${s.id}', ${tIdx}, this.checked)">
                     <span class="track-label">${t.label}</span>
                     <button class="play-btn ${t.cls}" onclick="playSingle(event, '${s.id}', ${tIdx})">LYSSNA</button>
                 </div>`;
@@ -592,6 +737,7 @@ function render() {
     });
     document.getElementById('songList').innerHTML = html;
 }
+songs.sort((a, b) => a.title.localeCompare(b.title, 'sv'));
 render();
 </script>
 </body>
