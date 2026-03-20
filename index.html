@@ -278,19 +278,22 @@ input[type="checkbox"] {
 
 /* REPEAT BUTTON */
 .repeat-btn {
-  background: var(--surface2);
+  background: transparent;
   border: 1px solid var(--border);
   color: var(--muted);
-  padding: 12px;
+  padding: 8px 12px;
   border-radius: var(--radius);
-  font-size: 16px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
   flex-shrink: 0;
-  width: 46px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+  min-width: 48px;
 }
-.repeat-btn.active-one { color: #fff; border-color: var(--red); background: var(--red-dark); }
-.repeat-btn.active-all { color: #fff; border-color: #e6922e; background: #8a4d00; }
+.repeat-btn.active-one { color: var(--red); border-color: var(--red); background: transparent; }
+.repeat-btn.active-all { color: #ff8c00; border-color: #ff8c00; background: transparent; }
 
 /* FOOTER */
 footer {
@@ -343,7 +346,7 @@ footer {
     <button class="nav-btn" onclick="prevTrack()">⏮</button>
     <button class="nav-btn primary" onclick="startPlaylist()">SPELA VALDA</button>
     <button class="nav-btn" onclick="nextTrack()">⏭</button>
-    <button class="repeat-btn" id="repeatBtn" onclick="cycleRepeat()" title="Repeat av">🔁 Av</button>
+    <button class="repeat-btn" id="repeatBtn" onclick="cycleRepeat()" title="Repeat av"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
   </div>
 </div>
 
@@ -357,8 +360,6 @@ footer {
 </footer>
 
 </div>
-
-<script>
 
 <script>
 const S3 = "https://hrk-media-prod-263167772559.s3.eu-north-1.amazonaws.com/materials";
@@ -376,17 +377,19 @@ function cycleRepeat() {
     btn.classList.remove('active-one', 'active-all');
     if (repeatMode === 1) {
         btn.classList.add('active-one');
-        btn.innerHTML = '🔂 Spår';
+        btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span style="font-size:9px;font-weight:700;letter-spacing:0.5px;display:block;margin-top:1px;">SPÅR</span>`;
         btn.title = 'Upprepa spår';
     } else if (repeatMode === 2) {
         btn.classList.add('active-all');
-        btn.innerHTML = '🔁 Lista';
+        btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span style="font-size:9px;font-weight:700;letter-spacing:0.5px;display:block;margin-top:1px;">ALLA</span>`;
         btn.title = 'Upprepa lista';
     } else {
-        btn.innerHTML = '🔁 Av';
+        btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`;
         btn.title = 'Repeat av';
     }
 }
+
+
 
 function initAudio() {
     audioPlayer.src = "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
